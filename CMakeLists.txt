@@ -11,4 +11,6 @@ add_executable(simpledb
         src/catalog.c
         src/row.h
         src/row.c
+        src/table.h
+        src/table.c
 )
