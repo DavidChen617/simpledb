@@ -5,4 +5,5 @@ set(CMAKE_C_STANDARD 11)
 
 add_executable(simpledb
         src/pager.h
-        src/pager.c)
+        src/pager.c
+        src/schema.h)
