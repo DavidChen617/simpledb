@@ -9,6 +9,6 @@
 int row_serialize(TableMeta *meta, char **tokens, int num_tokens, void *dest);
 
 // 把 row bytes 印成 (val1, val2) 格式
-void row_print(TableMeta *meta, void *row_data);
+void row_print(const TableMeta *meta, void *row_data);
 
 #endif
