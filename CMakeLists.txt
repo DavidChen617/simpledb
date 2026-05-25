@@ -8,4 +8,6 @@ add_executable(simpledb
         src/pager.c
         src/schema.h
         src/catalog.h
-        src/catalog.c)
+        src/catalog.c
+        src/row.h
+)
