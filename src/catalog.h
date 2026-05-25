@@ -14,11 +14,11 @@ static_assert(sizeof(Catalog) <= PAGE_SIZE, "Catalog exceeds one page- reduce MA
 
 void catalog_load(Pager *pager, Catalog *catalog);
 
-void catalog_flush(Pager *pager, Catalog *catalog);
+void catalog_flush(Pager *pager, const Catalog *catalog);
 
-int catalog_find(Catalog *catalog, const char *name);
+int catalog_find(const Catalog *catalog, const char *name);
 
-int catalog_add(Catalog *catalog, TableMeta *meta);
+int catalog_add(Catalog *catalog, const TableMeta *meta);
 
 void catalog_remove(Catalog *catalog, int idx);
 
