@@ -117,6 +117,12 @@ void run_repl(Database *db) {
                 free(line);
                 continue;
             }
+            if (strcmp(tokens[0], ".list") == 0) {
+                for (uint32_t i = 0; i < db->catalog.num_tables; ++i)
+                    printf("%s\n", db->catalog.tables[i].name);
+                free(line);
+                continue;
+            }
             printf("Unknown command: %s\n", tokens[0]);
             free(line);
             continue;
@@ -189,6 +195,27 @@ void run_repl(Database *db) {
                 wval = tokens[wi + 3];
             }
 
+            // drop table
+            if (strcasecmp(tokens[0], "drop") == 0) {
+                if (n < 3 || strcasecmp(tokens[1], "table") != 0) {
+                    printf("Usage: drop table <name>\n");
+                    free(line);
+                    continue;
+                }
+
+                int idx = catalog_find(&db->catalog, tokens[2]);
+                if (idx < 0) {
+                    printf("Error: table '%s' not found\n", tokens[2]);
+                    free(line);
+                    continue;
+                }
+                catalog_remove(&db->catalog, idx);
+                catalog_flush(db->pager, &db->catalog);
+                printf("Table '%s' deleted.\n", tokens[2]);
+                free(line);
+                continue;
+            }
+
             execute_select(table, wcol, wop, wval);
             table_close(table);
             free(line);
@@ -239,7 +266,7 @@ void run_repl(Database *db) {
             const uint32_t key = (uint32_t) atoi(tokens[ti + 1]);
             const ExecuteResult r = execute_delete(table, key);
             if (r == EXECUTE_KEY_NOT_FOUND)
-                printf("Error: key '%s' not found\n", tokens[ti]);
+                printf("Error: key %u not found\n", key);
             else if (r == EXECUTE_SUCCESS)
                 printf("Deleted.\n");
             table_close(table);
