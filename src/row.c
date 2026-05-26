@@ -42,3 +42,41 @@ void row_print(const TableMeta *meta, void *row_data) {
     }
     printf(")\n");
 }
+bool row_match(const TableMeta *meta, void *row_data, const char *col_name, const char *op, const char *val) {
+    // 沒有 where
+    if (!col_name)
+        return true;
+
+    for (uint32_t i = 0; i < meta->num_columns; ++i) {
+        const Column *col = &meta->columns[i];
+        if (strcmp(col->name, col_name) != 0)
+            continue;
+
+        void *field = (char *)row_data + col->offset;
+        if (col->type == COL_INT) {
+            int32_t row_val;
+            memcpy(&row_val, field, sizeof(int32_t));
+            const int32_t cmp_val = atoi(val);
+            if (strcmp(op, "=") == 0)
+                return row_val == cmp_val;
+            if (strcmp(op, ">") == 0)
+                return row_val > cmp_val;
+            if (strcmp(op, "<") == 0)
+                return row_val < cmp_val;
+            if (strcmp(op, ">=") == 0)
+                return row_val >= cmp_val;
+            if (strcmp(op, "<=") == 0)
+                return row_val <= cmp_val;
+        }else {
+            const int cmp = strcmp((char *)field, val);
+            if (strcmp(op, "=") == 0)
+                return cmp == 0;
+            if (strcmp(op, ">") == 0)
+                return cmp > 0;
+            if (strcmp(op, "<") == 0)
+                return cmp < 0;
+        }
+    }
+
+    return false;
+}
