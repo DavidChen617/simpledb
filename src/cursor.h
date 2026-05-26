@@ -13,7 +13,7 @@ typedef struct Cursor{
 } Cursor;
 
 Cursor *table_start(Table *table);
-void *cursor_value(Cursor *cursor);
+void *cursor_value(const Cursor *cursor);
 void cursor_advance(Cursor *cursor);
 
 #endif
