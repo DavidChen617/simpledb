@@ -245,7 +245,7 @@ void run_repl(Database *db) {
             const uint32_t key = (uint32_t) atoi(tokens[ti + 1]);
             const ExecuteResult r = execute_delete(table, key);
             if (r == EXECUTE_KEY_NOT_FOUND)
-                printf("Error: key '%s' not found\n", tokens[ti]);
+                printf("Error: key %u not found\n", key);
             else if (r == EXECUTE_SUCCESS)
                 printf("Deleted.\n");
             table_close(table);
