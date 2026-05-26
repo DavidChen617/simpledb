@@ -195,29 +195,29 @@ void run_repl(Database *db) {
                 wval = tokens[wi + 3];
             }
 
-            // drop table
-            if (strcasecmp(tokens[0], "drop") == 0) {
-                if (n < 3 || strcasecmp(tokens[1], "table") != 0) {
-                    printf("Usage: drop table <name>\n");
-                    free(line);
-                    continue;
-                }
+            execute_select(table, wcol, wop, wval);
+            table_close(table);
+            free(line);
+            continue;
+        }
 
-                int idx = catalog_find(&db->catalog, tokens[2]);
-                if (idx < 0) {
-                    printf("Error: table '%s' not found\n", tokens[2]);
-                    free(line);
-                    continue;
-                }
-                catalog_remove(&db->catalog, idx);
-                catalog_flush(db->pager, &db->catalog);
-                printf("Table '%s' deleted.\n", tokens[2]);
+        // drop table
+        if (strcasecmp(tokens[0], "drop") == 0) {
+            if (n < 3 || strcasecmp(tokens[1], "table") != 0) {
+                printf("Usage: drop table <name>\n");
                 free(line);
                 continue;
             }
 
-            execute_select(table, wcol, wop, wval);
-            table_close(table);
+            int idx = catalog_find(&db->catalog, tokens[2]);
+            if (idx < 0) {
+                printf("Error: table '%s' not found\n", tokens[2]);
+                free(line);
+                continue;
+            }
+            catalog_remove(&db->catalog, idx);
+            catalog_flush(db->pager, &db->catalog);
+            printf("Table '%s' deleted.\n", tokens[2]);
             free(line);
             continue;
         }
