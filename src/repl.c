@@ -117,6 +117,12 @@ void run_repl(Database *db) {
                 free(line);
                 continue;
             }
+            if (strcmp(tokens[0], ".list") == 0) {
+                for (uint32_t i = 0; i < db->catalog.num_tables; ++i)
+                    printf("%s\n", db->catalog.tables[i].name);
+                free(line);
+                continue;
+            }
             printf("Unknown command: %s\n", tokens[0]);
             free(line);
             continue;
