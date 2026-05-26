@@ -25,13 +25,20 @@ ExecuteResult execute_insert(Table *table, const uint32_t key, char **tokens, in
     return EXECUTE_SUCCESS;
 }
 
-ExecuteResult execute_select(Table *table, const char *where_col, const char *where_op,
+ExecuteResult execute_select(Table *table,
+                             char **cols,
+                             int num_cols,
+                             const char *where_col, const char *where_op,
                              const char *where_val) {
     Cursor *cursor = table_start(table);
     while (!cursor->end_of_table) {
         void *row = cursor_value(cursor);
-        if (row_match(table->meta, row, where_col, where_op, where_val))
-            row_print(table->meta, row);
+        if (row_match(table->meta, row, where_col, where_op, where_val)) {
+            if (num_cols == 0)
+                row_print(table->meta, row);
+            else
+                row_print_cols(table->meta, row, cols, num_cols);
+        }
         cursor_advance(cursor);
     }
     free(cursor);

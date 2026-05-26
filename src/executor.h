@@ -11,9 +11,14 @@ typedef enum {
 } ExecuteResult;
 
 ExecuteResult execute_insert(Table *table, uint32_t key, char **tokens, int num_tokens);
-ExecuteResult execute_select(Table *table, const char *where_col, const char *where_op,
+
+ExecuteResult execute_select(Table *table,
+                             char **cols, int num_cols,
+                             const char *where_col, const char *where_op,
                              const char *where_val);
+
 ExecuteResult execute_update(Table *table, uint32_t key, char **tokens, int num_tokens);
+
 ExecuteResult execute_delete(Table *table, uint32_t key);
 
 #endif

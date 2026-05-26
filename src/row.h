@@ -14,4 +14,6 @@ void row_print(const TableMeta *meta, void *row_data);
 
 bool row_match(const TableMeta *meta, void *row_data, const char *col_name, const char *op, const char *val);
 
+void row_print_cols(const TableMeta *meta, void *row_data, char **cols, int num_cols);
+
 #endif

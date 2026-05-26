@@ -176,6 +176,22 @@ void run_repl(Database *db) {
                 free(line);
                 continue;
             }
+
+            // 解析欄位
+            char *cols[MAX_TOKENS];
+            int num_cols = 0;
+            for (int i = 1; i < fi; ++i) {
+                if (strcmp(tokens[i], "*") == 0) {
+                    num_cols = 0;
+                    break;
+                }
+                char *tok = strtok(tokens[i], ",");
+                while (tok) {
+                    if (*tok)
+                        cols[num_cols++] = tok;
+                    tok = strtok(NULL, ",");
+                }
+            }
             Table *table = table_open(db, tokens[fi + 1]);
             if (!table) {
                 printf("Error: table '%s' not found\n", tokens[fi + 1]);
@@ -195,7 +211,7 @@ void run_repl(Database *db) {
                 wval = tokens[wi + 3];
             }
 
-            execute_select(table, wcol, wop, wval);
+            execute_select(table, cols, num_cols, wcol, wop, wval);
             table_close(table);
             free(line);
             continue;
