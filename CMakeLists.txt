@@ -17,4 +17,6 @@ add_executable(simpledb
         src/cursor.h
         src/btree.c
         src/cursor.c
+        src/executor.h
+        src/executor.c
 )
