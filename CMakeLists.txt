@@ -21,4 +21,5 @@ add_executable(simpledb
         src/executor.c
         src/repl.h
         src/repl.c
+        src/main.c
 )
