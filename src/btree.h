@@ -82,7 +82,7 @@ struct Cursor *internal_node_find(Table *table, uint32_t page_num, uint32_t key)
 struct Cursor *table_find(Table *table, uint32_t key);
 
 // Split
-void leaf_node_split_and_insert(const Cursor *cursor, uint32_t key, const void *row_data);
+void leaf_node_split_and_insert(const struct Cursor *cursor, uint32_t key, const void *row_data);
 void create_new_root(Table *table, uint32_t right_child_page_num);
 void internal_node_insert(Table *table, uint32_t parent_page_num, uint32_t child_page_num);
 void internal_node_split_and_insert(Table *table, uint32_t parent_page_num, uint32_t child_page_num);
