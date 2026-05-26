@@ -253,7 +253,7 @@ void run_repl(Database *db) {
             }
 
             const uint32_t key = (uint32_t) atoi(tokens[2]);
-            ExecuteResult r = execute_update(table, key, &tokens[2], n -2);
+            ExecuteResult r = execute_update(table, key, &tokens[2], n - 2);
             if (r == EXECUTE_KEY_NOT_FOUND)
                 printf("Error: key %u not found\n", key);
             else if (r == EXECUTE_SUCCESS)
@@ -286,6 +286,31 @@ void run_repl(Database *db) {
             else if (r == EXECUTE_SUCCESS)
                 printf("Deleted.\n");
             table_close(table);
+            free(line);
+            continue;
+        }
+
+        if (strcasecmp(tokens[0], "describe") == 0) {
+            if (n < 2) {
+                printf("Usage: describe <table>\n");
+                free(line);
+                continue;
+            }
+            int idx = catalog_find(&db->catalog, tokens[1]);
+            if (idx < 0) {
+                printf("Error: table '%s' not found\n", tokens[1]);
+                free(line);
+                continue;
+            }
+            TableMeta *meta = &db->catalog.tables[idx];
+            printf("Table: %s\n", tokens[1]);
+            printf("%-16s %-8s %s\n", "Columns", "Type", "Size");
+            printf("%-16s %-8s %s\n", "-------", "----", "----");
+            for (uint32_t i = 0; i < meta->num_columns; ++i) {
+                Column *col = &meta->columns[i];
+                printf("%-16s %-8s %u\n", col->name,
+                       col->type == COL_INT ? "INT" : "TEXT", col->size);
+            }
             free(line);
             continue;
         }
