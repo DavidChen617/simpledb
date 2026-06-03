@@ -12,7 +12,7 @@ int row_serialize(TableMeta *meta, char **tokens, const int num_tokens, void *de
     memset(dest, 0, meta->row_size);
 
     for (uint32_t i = 0; i < meta->num_columns; ++i) {
-        Column *col = &meta->columns[i];
+        const Column *col = &meta->columns[i];
         void *target = (char *) dest + col->offset;
 
         if (col->type == COL_INT) {

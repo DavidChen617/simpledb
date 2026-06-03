@@ -4,7 +4,7 @@
 #include "btree.h"
 #include "row.h"
 
-ExecuteResult execute_insert(Table *table, const uint32_t key, char **tokens, int num_tokens) {
+ExecuteResult execute_insert(Table *table, const uint32_t key, char **tokens, const int num_tokens) {
     Cursor *cursor = table_find(table, key);
     void *node = pager_get_page(table->pager, cursor->page_num);
     if (!cursor->end_of_table && *leaf_node_key(table, node, cursor->cell_num) == key) {

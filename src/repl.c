@@ -22,7 +22,7 @@ static int tokenize(char *buf, char **tokens) {
 }
 
 // create table users (id INT, name TEXT, age INT)
-static void handle_create(Database *db, char **t, int n) {
+static void handle_create(Database *db, char **t, const int n) {
     if (n < 5 || strcasecmp(t[1], "table") != 0) {
         printf("Usage: create table <name> (<col> <type>, ...)\n");
         return;
@@ -33,7 +33,7 @@ static void handle_create(Database *db, char **t, int n) {
         return;
     }
 
-    TableMeta meta = {0};
+    TableMeta meta = {0}; // 等價 memset(&meta, 0, sizeof(TableMeta));
     strncpy(meta.name, tname, MAX_TABLE_NAME - 1);
     uint32_t offset = 0, col_idx = 0;
     int i = 3;
@@ -96,7 +96,7 @@ void run_repl(Database *db) {
             add_history(line);
 
         char *tokens[MAX_TOKENS];
-        int n = tokenize(line, tokens);
+        const int n = tokenize(line, tokens);
         if (n == 0) {
             free(line);
             continue;
@@ -138,7 +138,7 @@ void run_repl(Database *db) {
         // insert <table> <id> <val>
         if (strcasecmp(tokens[0], "insert") == 0) {
             // support: insert into <table> ...
-            int ti = (n > 1 && strcasecmp(tokens[1], "into") == 0) ? 2 : 1;
+            const int ti = (n > 1 && strcasecmp(tokens[1], "into") == 0) ? 2 : 1;
             if (n < ti + 2) {
                 printf("Usage: insert <table> <id> <val>...\n");
                 free(line);

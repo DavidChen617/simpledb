@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "table.h"
 #include "repl.h"
 
