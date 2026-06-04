@@ -50,3 +50,9 @@ cmake-build-release/
 .vscode/
 *.swp
 *.swo
+
+# Project binaries and test artifacts
+simpledb
+*.db
+tests/unit/test_*
+tests/integration/test_*
