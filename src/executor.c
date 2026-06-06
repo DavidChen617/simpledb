@@ -1,6 +1,7 @@
 #include "table.h"
 #include "executor.h"
 #include <stdlib.h>
+#include <string.h>
 #include "btree.h"
 #include "row.h"
 
@@ -25,11 +26,36 @@ ExecuteResult execute_insert(Table *table, const uint32_t key, char **tokens, co
     return EXECUTE_SUCCESS;
 }
 
+static bool is_primary_key_eq(const Table *table, const char *where_col,
+                               const char *where_op) {
+    if (!where_col || !where_op) return false;
+    if (strcmp(where_op, "=") != 0) return false;
+    if (table->meta->num_columns == 0) return false;
+    const Column *pk = &table->meta->columns[0];
+    return pk->type == COL_INT && strcasecmp(pk->name, where_col) == 0;
+}
+
 ExecuteResult execute_select(Table *table,
                              char **cols,
-                             int num_cols,
+                             const int num_cols,
                              const char *where_col, const char *where_op,
                              const char *where_val) {
+    if (is_primary_key_eq(table, where_col, where_op)) {
+        uint32_t key = (uint32_t) atoi(where_val);
+        Cursor *cursor = table_find(table, key);
+        void *node = pager_get_page(table->pager, cursor->page_num);
+        if (!cursor->end_of_table &&
+            *leaf_node_key(table, node, cursor->cell_num) == key) {
+            void *row = cursor_value(cursor);
+            if (num_cols == 0)
+                row_print(table->meta, row);
+            else
+                row_print_cols(table->meta, row, cols, num_cols);
+        }
+        free(cursor);
+        return EXECUTE_SUCCESS;
+    }
+
     Cursor *cursor = table_start(table);
     while (!cursor->end_of_table) {
         void *row = cursor_value(cursor);
