@@ -151,8 +151,8 @@ void run_repl(Database *db) {
                 continue;
             }
 
-            uint32_t key = (uint32_t) atoi(tokens[ti + 1]);
-            ExecuteResult r = execute_insert(table, key, &tokens[ti + 1], n - ti - 1);
+            const uint32_t key = (uint32_t) atoi(tokens[ti + 1]);
+            const ExecuteResult r = execute_insert(table, key, &tokens[ti + 1], n - ti - 1);
             if (r == EXECUTE_DUPLICATE_KEY)
                 printf("Error: duplicate key %u\n", key);
             else if (r == EXECUTE_SUCCESS)

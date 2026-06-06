@@ -41,7 +41,7 @@ ExecuteResult execute_select(Table *table,
                              const char *where_col, const char *where_op,
                              const char *where_val) {
     if (is_primary_key_eq(table, where_col, where_op)) {
-        uint32_t key = (uint32_t) atoi(where_val);
+        const uint32_t key = (uint32_t) atoi(where_val);
         Cursor *cursor = table_find(table, key);
         void *node = pager_get_page(table->pager, cursor->page_num);
         if (!cursor->end_of_table &&

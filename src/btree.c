@@ -128,7 +128,7 @@ static void update_internal_node_key(void *parent, const uint32_t old_key, const
     *internal_node_key(parent, idx) = new_key;
 }
 
-// Leaf fine
+// Leaf find
 Cursor *leaf_node_find(Table *table, const uint32_t page_num, const uint32_t key) {
     void *node = pager_get_page(table->pager, page_num);
     const uint32_t num_cells = *leaf_node_num_cells(node);

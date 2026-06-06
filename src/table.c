@@ -4,7 +4,7 @@
 
 static void compute_table_layout(Table *t) {
     t->cell_size = LEAF_NODE_KEY_SIZE + t->meta->row_size;
-    uint32_t space = PAGE_SIZE - LEAF_NODE_HEADER_SIZE;
+    const uint32_t space = PAGE_SIZE - LEAF_NODE_HEADER_SIZE;
     t->max_cells = space / t->cell_size;
     t->min_cells = t->max_cells / 2;
     t->right_split_count = (t->max_cells + 1) / 2;
