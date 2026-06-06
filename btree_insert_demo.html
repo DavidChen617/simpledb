@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>B-Tree 插入視覺化</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0f0f1a;
+  color: #e0e0e0;
+  font-family: 'Courier New', monospace;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 20px;
+}
+h1 { color: #64ffda; margin-bottom: 24px; font-size: 1.3em; letter-spacing: 1px; }
+#info-box {
+  background: #1a1a2e;
+  border: 1px solid #2a2a4a;
+  border-radius: 10px;
+  padding: 16px 28px;
+  margin-bottom: 24px;
+  text-align: center;
+  width: 760px;
+}
+#step-title {
+  color: #64ffda;
+  font-size: 1em;
+  margin-bottom: 6px;
+}
+#step-desc { color: #888; font-size: 0.85em; }
+#tree-container {
+  background: #1a1a2e;
+  border: 1px solid #2a2a4a;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  display: block;
+}
+#controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+button {
+  background: #16213e;
+  color: #64ffda;
+  border: 1px solid #64ffda;
+  border-radius: 6px;
+  padding: 8px 22px;
+  cursor: pointer;
+  font-size: 0.95em;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+button:hover:not(:disabled) { background: #0f3460; }
+button:disabled { opacity: 0.25; cursor: default; }
+#step-counter { color: #666; font-size: 0.85em; min-width: 80px; text-align: center; }
+.legend {
+  display: flex;
+  gap: 22px;
+  font-size: 0.78em;
+  color: #888;
+}
+.legend-item { display: flex; align-items: center; gap: 7px; }
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<h1>B-Tree 插入視覺化</h1>
+
+<div id="info-box">
+  <div id="step-title"></div>
+  <div id="step-desc"></div>
+</div>
+
+<svg id="tree-container" width="860"></svg>
+
+<div id="controls">
+  <button id="prev">← 上一步</button>
+  <span id="step-counter"></span>
+  <button id="next">下一步 →</button>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#1e3a5f;border:1.5px solid #4fc3f7"></div>正常</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3d1a0e;border:1.5px solid #ff7043"></div>已滿</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#1a3d1a;border:1.5px solid #66bb6a"></div>新插入</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3d3000;border:1.5px solid #ffd54f"></div>Split</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#1a1a3e;border:1.5px solid #9c27b0"></div>Internal Node</div>
+</div>
+
+<script>
+const steps = [
+  {
+    insert: "insert (1, user1, 22)",
+    desc: "插入第一筆，root 直接是 leaf node",
+    tree: { type:'leaf', cells:[{key:1,name:'user1',status:'new'}] }
+  },
+  {
+    insert: "insert (2, user2, 25)",
+    desc: "加入第二筆",
+    tree: { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2',status:'new'}] }
+  },
+  {
+    insert: "insert (3, user3, 24)",
+    desc: "leaf node 滿了（3 筆），下一次 insert 會 split",
+    tree: { type:'leaf', status:'full', cells:[{key:1,name:'user1'},{key:2,name:'user2'},{key:3,name:'user3',status:'new'}] }
+  },
+  {
+    insert: "insert (4, user4, 30)",
+    desc: "觸發 split！root 變成 internal node，樹長出第二層",
+    tree: {
+      type:'internal', keys:[3],
+      children:[
+        { type:'leaf', status:'split', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+        { type:'leaf', status:'split', cells:[{key:3,name:'user3'},{key:4,name:'user4',status:'new'}] }
+      ]
+    }
+  },
+  {
+    insert: "insert (5, user5, 28)",
+    desc: "5 > 3，往右邊 leaf 插入，右邊滿了",
+    tree: {
+      type:'internal', keys:[3],
+      children:[
+        { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+        { type:'leaf', status:'full', cells:[{key:3,name:'user3'},{key:4,name:'user4'},{key:5,name:'user5',status:'new'}] }
+      ]
+    }
+  },
+  {
+    insert: "insert (6, user6, 31)",
+    desc: "右邊 leaf 滿了，觸發 split",
+    tree: {
+      type:'internal', keys:[3,5],
+      children:[
+        { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+        { type:'leaf', status:'split', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+        { type:'leaf', status:'split', cells:[{key:5,name:'user5'},{key:6,name:'user6',status:'new'}] }
+      ]
+    }
+  },
+  {
+    insert: "insert (7, user7, 27)",
+    desc: "7 > 5，往最右邊插入，最右邊滿了",
+    tree: {
+      type:'internal', keys:[3,5],
+      children:[
+        { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+        { type:'leaf', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+        { type:'leaf', status:'full', cells:[{key:5,name:'user5'},{key:6,name:'user6'},{key:7,name:'user7',status:'new'}] }
+      ]
+    }
+  },
+  {
+    insert: "insert (8, user8, 33)",
+    desc: "split！root 現在有 3 個 key 滿了，下一次 split 樹會長高",
+    tree: {
+      type:'internal', status:'full', keys:[3,5,7],
+      children:[
+        { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+        { type:'leaf', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+        { type:'leaf', status:'split', cells:[{key:5,name:'user5'},{key:6,name:'user6'}] },
+        { type:'leaf', status:'split', cells:[{key:7,name:'user7'},{key:8,name:'user8',status:'new'}] }
+      ]
+    }
+  },
+  {
+    insert: "insert (9, user9, 29)",
+    desc: "9 > 7，往最右邊插入，leaf 滿了，root 也滿了，下一次 insert 樹會長高一層",
+    tree: {
+      type:'internal', status:'full', keys:[3,5,7],
+      children:[
+        { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+        { type:'leaf', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+        { type:'leaf', cells:[{key:5,name:'user5'},{key:6,name:'user6'}] },
+        { type:'leaf', status:'full', cells:[{key:7,name:'user7'},{key:8,name:'user8'},{key:9,name:'user9',status:'new'}] }
+      ]
+    }
+  },
+  {
+    insert: "insert (10, user10, 35)",
+    desc: "leaf split → 要把 key 推給 root，但 root 滿了 → root 也 split！樹長高一層",
+    tree: {
+      type:'internal', keys:[7],
+      children:[
+        {
+          type:'internal', keys:[3,5],
+          children:[
+            { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+            { type:'leaf', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+            { type:'leaf', cells:[{key:5,name:'user5'},{key:6,name:'user6'}] }
+          ]
+        },
+        {
+          type:'internal', status:'split', keys:[9],
+          children:[
+            { type:'leaf', status:'split', cells:[{key:7,name:'user7'},{key:8,name:'user8'}] },
+            { type:'leaf', status:'split', cells:[{key:9,name:'user9'},{key:10,name:'user10',status:'new'}] }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    insert: "insert (11, user11, 26)",
+    desc: "11 > 9，往最右邊 leaf 插入，最右邊滿了",
+    tree: {
+      type:'internal', keys:[7],
+      children:[
+        {
+          type:'internal', keys:[3,5],
+          children:[
+            { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+            { type:'leaf', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+            { type:'leaf', cells:[{key:5,name:'user5'},{key:6,name:'user6'}] }
+          ]
+        },
+        {
+          type:'internal', keys:[9],
+          children:[
+            { type:'leaf', cells:[{key:7,name:'user7'},{key:8,name:'user8'}] },
+            { type:'leaf', status:'full', cells:[{key:9,name:'user9'},{key:10,name:'user10'},{key:11,name:'user11',status:'new'}] }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    insert: "insert (12, user12, 40)",
+    desc: "右邊 leaf 滿了，split，key 11 往上推給右邊 internal node",
+    tree: {
+      type:'internal', keys:[7],
+      children:[
+        {
+          type:'internal', keys:[3,5],
+          children:[
+            { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+            { type:'leaf', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+            { type:'leaf', cells:[{key:5,name:'user5'},{key:6,name:'user6'}] }
+          ]
+        },
+        {
+          type:'internal', keys:[9,11],
+          children:[
+            { type:'leaf', cells:[{key:7,name:'user7'},{key:8,name:'user8'}] },
+            { type:'leaf', status:'split', cells:[{key:9,name:'user9'},{key:10,name:'user10'}] },
+            { type:'leaf', status:'split', cells:[{key:11,name:'user11'},{key:12,name:'user12',status:'new'}] }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    insert: "insert (13, user13, 23)",
+    desc: "13 > 11，往最右邊 leaf 插入",
+    tree: {
+      type:'internal', keys:[7],
+      children:[
+        {
+          type:'internal', keys:[3,5],
+          children:[
+            { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+            { type:'leaf', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+            { type:'leaf', cells:[{key:5,name:'user5'},{key:6,name:'user6'}] }
+          ]
+        },
+        {
+          type:'internal', keys:[9,11],
+          children:[
+            { type:'leaf', cells:[{key:7,name:'user7'},{key:8,name:'user8'}] },
+            { type:'leaf', cells:[{key:9,name:'user9'},{key:10,name:'user10'}] },
+            { type:'leaf', cells:[{key:11,name:'user11'},{key:12,name:'user12'},{key:13,name:'user13',status:'new'}] }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    insert: "insert (14, user14, 38)",
+    desc: "14 > 11，leaf split，key 13 推給右邊 internal → [9|11|13] FULL",
+    tree: {
+      type:'internal', keys:[7],
+      children:[
+        { type:'internal', keys:[3,5], children:[
+            { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+            { type:'leaf', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+            { type:'leaf', cells:[{key:5,name:'user5'},{key:6,name:'user6'}] }
+        ]},
+        { type:'internal', status:'full', keys:[9,11,13], children:[
+            { type:'leaf', cells:[{key:7,name:'user7'},{key:8,name:'user8'}] },
+            { type:'leaf', cells:[{key:9,name:'user9'},{key:10,name:'user10'}] },
+            { type:'leaf', status:'split', cells:[{key:11,name:'user11'},{key:12,name:'user12'}] },
+            { type:'leaf', status:'split', cells:[{key:13,name:'user13'},{key:14,name:'user14',status:'new'}] }
+        ]}
+      ]
+    }
+  },
+  {
+    insert: "insert (15, user15, 29)",
+    desc: "15 > 13，往最右邊 leaf 插入，右邊 leaf 和 internal 都滿了",
+    tree: {
+      type:'internal', keys:[7],
+      children:[
+        { type:'internal', keys:[3,5], children:[
+            { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+            { type:'leaf', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+            { type:'leaf', cells:[{key:5,name:'user5'},{key:6,name:'user6'}] }
+        ]},
+        { type:'internal', status:'full', keys:[9,11,13], children:[
+            { type:'leaf', cells:[{key:7,name:'user7'},{key:8,name:'user8'}] },
+            { type:'leaf', cells:[{key:9,name:'user9'},{key:10,name:'user10'}] },
+            { type:'leaf', cells:[{key:11,name:'user11'},{key:12,name:'user12'}] },
+            { type:'leaf', status:'full', cells:[{key:13,name:'user13'},{key:14,name:'user14'},{key:15,name:'user15',status:'new'}] }
+        ]}
+      ]
+    }
+  },
+  {
+    insert: "insert (16, user16, 44)",
+    desc: "雙重 split！leaf split + internal split，key 13 推給 root → root 變 [7|13]，樹寬了一層",
+    tree: {
+      type:'internal', keys:[7,13],
+      children:[
+        { type:'internal', keys:[3,5], children:[
+            { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+            { type:'leaf', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+            { type:'leaf', cells:[{key:5,name:'user5'},{key:6,name:'user6'}] }
+        ]},
+        { type:'internal', status:'split', keys:[9,11], children:[
+            { type:'leaf', cells:[{key:7,name:'user7'},{key:8,name:'user8'}] },
+            { type:'leaf', cells:[{key:9,name:'user9'},{key:10,name:'user10'}] },
+            { type:'leaf', cells:[{key:11,name:'user11'},{key:12,name:'user12'}] }
+        ]},
+        { type:'internal', status:'split', keys:[15], children:[
+            { type:'leaf', status:'split', cells:[{key:13,name:'user13'},{key:14,name:'user14'}] },
+            { type:'leaf', status:'split', cells:[{key:15,name:'user15'},{key:16,name:'user16',status:'new'}] }
+        ]}
+      ]
+    }
+  },
+  {
+    insert: "insert (17, user17, 27)",
+    desc: "17 > 15，往最右邊 leaf 插入，leaf 滿了",
+    tree: {
+      type:'internal', keys:[7,13],
+      children:[
+        { type:'internal', keys:[3,5], children:[
+            { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+            { type:'leaf', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+            { type:'leaf', cells:[{key:5,name:'user5'},{key:6,name:'user6'}] }
+        ]},
+        { type:'internal', keys:[9,11], children:[
+            { type:'leaf', cells:[{key:7,name:'user7'},{key:8,name:'user8'}] },
+            { type:'leaf', cells:[{key:9,name:'user9'},{key:10,name:'user10'}] },
+            { type:'leaf', cells:[{key:11,name:'user11'},{key:12,name:'user12'}] }
+        ]},
+        { type:'internal', keys:[15], children:[
+            { type:'leaf', cells:[{key:13,name:'user13'},{key:14,name:'user14'}] },
+            { type:'leaf', status:'full', cells:[{key:15,name:'user15'},{key:16,name:'user16'},{key:17,name:'user17',status:'new'}] }
+        ]}
+      ]
+    }
+  },
+  {
+    insert: "insert (18, user18, 33)",
+    desc: "leaf split，key 17 推給右邊 internal → [15|17]",
+    tree: {
+      type:'internal', keys:[7,13],
+      children:[
+        { type:'internal', keys:[3,5], children:[
+            { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+            { type:'leaf', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+            { type:'leaf', cells:[{key:5,name:'user5'},{key:6,name:'user6'}] }
+        ]},
+        { type:'internal', keys:[9,11], children:[
+            { type:'leaf', cells:[{key:7,name:'user7'},{key:8,name:'user8'}] },
+            { type:'leaf', cells:[{key:9,name:'user9'},{key:10,name:'user10'}] },
+            { type:'leaf', cells:[{key:11,name:'user11'},{key:12,name:'user12'}] }
+        ]},
+        { type:'internal', keys:[15,17], children:[
+            { type:'leaf', cells:[{key:13,name:'user13'},{key:14,name:'user14'}] },
+            { type:'leaf', status:'split', cells:[{key:15,name:'user15'},{key:16,name:'user16'}] },
+            { type:'leaf', status:'split', cells:[{key:17,name:'user17'},{key:18,name:'user18',status:'new'}] }
+        ]}
+      ]
+    }
+  },
+  {
+    insert: "insert (19, user19, 26)",
+    desc: "19 > 17，往最右邊 leaf 插入，leaf 滿了",
+    tree: {
+      type:'internal', keys:[7,13],
+      children:[
+        { type:'internal', keys:[3,5], children:[
+            { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+            { type:'leaf', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+            { type:'leaf', cells:[{key:5,name:'user5'},{key:6,name:'user6'}] }
+        ]},
+        { type:'internal', keys:[9,11], children:[
+            { type:'leaf', cells:[{key:7,name:'user7'},{key:8,name:'user8'}] },
+            { type:'leaf', cells:[{key:9,name:'user9'},{key:10,name:'user10'}] },
+            { type:'leaf', cells:[{key:11,name:'user11'},{key:12,name:'user12'}] }
+        ]},
+        { type:'internal', keys:[15,17], children:[
+            { type:'leaf', cells:[{key:13,name:'user13'},{key:14,name:'user14'}] },
+            { type:'leaf', cells:[{key:15,name:'user15'},{key:16,name:'user16'}] },
+            { type:'leaf', status:'full', cells:[{key:17,name:'user17'},{key:18,name:'user18'},{key:19,name:'user19',status:'new'}] }
+        ]}
+      ]
+    }
+  },
+  {
+    insert: "insert (20, user20, 31)",
+    desc: "leaf split，key 19 推給右邊 internal → [15|17|19] FULL",
+    tree: {
+      type:'internal', keys:[7,13],
+      children:[
+        { type:'internal', keys:[3,5], children:[
+            { type:'leaf', cells:[{key:1,name:'user1'},{key:2,name:'user2'}] },
+            { type:'leaf', cells:[{key:3,name:'user3'},{key:4,name:'user4'}] },
+            { type:'leaf', cells:[{key:5,name:'user5'},{key:6,name:'user6'}] }
+        ]},
+        { type:'internal', keys:[9,11], children:[
+            { type:'leaf', cells:[{key:7,name:'user7'},{key:8,name:'user8'}] },
+            { type:'leaf', cells:[{key:9,name:'user9'},{key:10,name:'user10'}] },
+            { type:'leaf', cells:[{key:11,name:'user11'},{key:12,name:'user12'}] }
+        ]},
+        { type:'internal', status:'full', keys:[15,17,19], children:[
+            { type:'leaf', cells:[{key:13,name:'user13'},{key:14,name:'user14'}] },
+            { type:'leaf', cells:[{key:15,name:'user15'},{key:16,name:'user16'}] },
+            { type:'leaf', status:'split', cells:[{key:17,name:'user17'},{key:18,name:'user18'}] },
+            { type:'leaf', status:'split', cells:[{key:19,name:'user19'},{key:20,name:'user20',status:'new'}] }
+        ]}
+      ]
+    }
+  }
+];
+
+let currentStep = 0;
+
+const C = {
+  normal:   { fill:'#1e3a5f', stroke:'#4fc3f7', text:'#cce' },
+  full:     { fill:'#3d1a0e', stroke:'#ff7043', text:'#ff9a7a' },
+  split:    { fill:'#3d3000', stroke:'#ffd54f', text:'#ffe082' },
+  internal: { fill:'#1a1a3e', stroke:'#9c27b0', text:'#ce93d8' },
+  intFull:  { fill:'#3d1a0e', stroke:'#ff7043', text:'#ff9a7a' },
+  new:      { text:'#66bb6a' }
+};
+
+const LEVEL_GAP = 110;
+const NODE_H = 46;
+const CELL_W = 76;
+const PAD = 10;
+const NODE_GAP = 24;
+
+function getMaxDepth(node) {
+  if (node.type === 'leaf') return 0;
+  return 1 + Math.max(...node.children.map(getMaxDepth));
+}
+
+function subtreeWidth(node) {
+  if (node.type === 'leaf') return node.cells.length * CELL_W + PAD * 2;
+  const childTotal = node.children.reduce((s, c) => s + subtreeWidth(c), 0)
+                   + (node.children.length - 1) * NODE_GAP;
+  return Math.max(childTotal, node.keys.length * 52 + PAD * 2);
+}
+
+function layout(node, cx, depth) {
+  node._depth = depth;
+  node._y = depth * LEVEL_GAP + 50;
+  node._x = cx;
+  if (node.type === 'leaf') {
+    node._w = node.cells.length * CELL_W + PAD * 2;
+  } else {
+    node._w = node.keys.length * 52 + PAD * 2;
+    const widths = node.children.map(subtreeWidth);
+    const total = widths.reduce((a, b) => a + b, 0) + (node.children.length - 1) * NODE_GAP;
+    let x = cx - total / 2;
+    node.children.forEach((child, i) => {
+      layout(child, x + widths[i] / 2, depth + 1);
+      x += widths[i] + NODE_GAP;
+    });
+  }
+}
+
+function drawLine(svg, x1, y1, x2, y2) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  el.setAttribute('x1', x1); el.setAttribute('y1', y1);
+  el.setAttribute('x2', x2); el.setAttribute('y2', y2);
+  el.setAttribute('stroke', '#3a3a5a');
+  el.setAttribute('stroke-width', '1.5');
+  svg.appendChild(el);
+}
+
+function drawRect(svg, x, y, w, h, fill, stroke, r=6) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  el.setAttribute('x', x); el.setAttribute('y', y);
+  el.setAttribute('width', w); el.setAttribute('height', h);
+  el.setAttribute('rx', r);
+  el.setAttribute('fill', fill); el.setAttribute('stroke', stroke);
+  el.setAttribute('stroke-width', '1.5');
+  svg.appendChild(el);
+}
+
+function drawText(svg, x, y, text, color, size, anchor='middle', weight='normal') {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  el.setAttribute('x', x); el.setAttribute('y', y);
+  el.setAttribute('text-anchor', anchor);
+  el.setAttribute('fill', color);
+  el.setAttribute('font-size', size);
+  el.setAttribute('font-family', 'Courier New');
+  el.setAttribute('font-weight', weight);
+  el.textContent = text;
+  svg.appendChild(el);
+}
+
+function drawDivider(svg, x, y1, y2, stroke) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  el.setAttribute('x1', x); el.setAttribute('y1', y1 + 5);
+  el.setAttribute('x2', x); el.setAttribute('y2', y2 - 5);
+  el.setAttribute('stroke', stroke); el.setAttribute('stroke-width', '0.5');
+  el.setAttribute('opacity', '0.35');
+  svg.appendChild(el);
+}
+
+function drawNode(svg, node) {
+  if (node.type === 'internal') {
+    node.children.forEach(child => {
+      drawLine(svg, node._x, node._y + NODE_H, child._x, child._y);
+      drawNode(svg, child);
+    });
+
+    const color = node.status === 'full' ? C.intFull : C.internal;
+    const x = node._x - node._w / 2;
+    drawRect(svg, x, node._y, node._w, NODE_H, color.fill, color.stroke);
+
+    node.keys.forEach((key, i) => {
+      const kx = x + PAD + i * 52 + 26;
+      if (i > 0) drawDivider(svg, kx - 26, node._y, node._y + NODE_H, color.stroke);
+      drawText(svg, kx, node._y + NODE_H / 2 + 6, String(key), color.text, 15, 'middle', 'bold');
+    });
+
+    drawText(svg, x - 6, node._y + NODE_H / 2 + 5, 'internal', '#444', 9, 'end');
+
+  } else {
+    const color = node.status === 'full' ? C.full : node.status === 'split' ? C.split : C.normal;
+    const x = node._x - node._w / 2;
+    drawRect(svg, x, node._y, node._w, NODE_H, color.fill, color.stroke);
+
+    node.cells.forEach((cell, i) => {
+      const cx = x + PAD + i * CELL_W;
+      if (i > 0) drawDivider(svg, cx, node._y, node._y + NODE_H, color.stroke);
+      const tc = cell.status === 'new' ? C.new.text : color.text;
+      const fw = cell.status === 'new' ? 'bold' : 'normal';
+      drawText(svg, cx + CELL_W / 2, node._y + 18, `id:${cell.key}`, tc, 12, 'middle', fw);
+      drawText(svg, cx + CELL_W / 2, node._y + 34, cell.name, tc, 10, 'middle', fw);
+    });
+
+    drawText(svg, x - 6, node._y + NODE_H / 2 + 5, 'leaf', '#444', 9, 'end');
+  }
+}
+
+function render() {
+  const step = steps[currentStep];
+  const svg = document.getElementById('tree-container');
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const totalW = Math.max(subtreeWidth(step.tree) + 120, 860);
+  svg.setAttribute('width', totalW);
+  layout(step.tree, totalW / 2, 0);
+
+  const depth = getMaxDepth(step.tree);
+  const h = (depth + 1) * LEVEL_GAP + 70;
+  svg.setAttribute('height', h);
+
+  drawNode(svg, step.tree);
+
+  document.getElementById('step-title').textContent = step.insert;
+  document.getElementById('step-desc').textContent = step.desc;
+  document.getElementById('step-counter').textContent = `${currentStep + 1} / ${steps.length}`;
+  document.getElementById('prev').disabled = currentStep === 0;
+  document.getElementById('next').disabled = currentStep === steps.length - 1;
+}
+
+document.getElementById('prev').addEventListener('click', () => { currentStep--; render(); });
+document.getElementById('next').addEventListener('click', () => { currentStep++; render(); });
+
+render();
+</script>
+</body>
+</html>
